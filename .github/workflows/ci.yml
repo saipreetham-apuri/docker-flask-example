@@ -1,31 +1,21 @@
-name: "CI"
+name: Build and Deploy Container App
 
 on:
-  pull_request:
-    branches:
-      - "*"
-  push:
-    branches:
-      - "main"
-      - "master"
-  schedule:
-    - cron: "30 12 * * *"
+  workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: "ubuntu-22.04"
-
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: "actions/checkout@v2"
-
-      - name: "Install CI dependencies"
-        run: |
-          ./run ci:install-deps
-
-      - name: "Test"
-        run: |
-          # Remove volumes in CI to avoid permission errors due to UID / GID.
-          sed -i "s|.:/app|/tmp:/tmp|g" .env*
-          sed -i "s|.:/app|/tmp:/tmp|g" compose.yaml
-
-          ./run ci:test
+    - uses: actions/checkout@v2
+    - uses: azure/docker-login@v1
+      with:
+        login-server: testimagepaxafe.azurecr.io
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+    - run: |
+        docker build . -t testimagepaxafe.azurecr.io/myapp:1.0.0
+        docker push testimagepaxafe.azurecr.io/myapp:1.0.0
